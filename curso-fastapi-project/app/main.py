@@ -1,6 +1,7 @@
-from fastapi import FastAPI
-from datetime import datetime
 import zoneinfo
+import time
+from fastapi import FastAPI, Request
+from datetime import datetime
 from db import create_all_tables
 from .routers import custormers, transactions, invoices, plans
 
@@ -17,14 +18,27 @@ country_timezones = {
     "BR" : "America/Sao_Paulo",
     "PE" : "America/Lima"
 }
+@app.middleware("http")
+async def log_request_time(request:Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    print(f"request: {request.url} completed in {process_time:.4f}")
+    return response
+
+@app.middleware("http")
+async def headears_requests(request:Request, call_next):
+    response = await call_next(request)
+    print(f"request: {request.url} headers in {request.headers}")
+    return response
 
 @app.get("/")
 async def root():
     return {"message":"hola mundo"}
 
-@app.get("/time/{iso_code}")
-async def time(iso_code: str):
+@app.get("/current_time/{iso_code}")
+async def current_time(iso_code: str):
     iso = iso_code.upper()
     timezone_str = country_timezones.get(iso)
     tz = zoneinfo.ZoneInfo(timezone_str)
-    return {"time" : datetime.now(tz)}
+    return {"current_time" : datetime.now(tz)}
